@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vk-bg: var(--vk-bg);
+  --color-vk-panel: var(--vk-panel);
+  --color-vk-msg-own: var(--vk-msg-own);
+  --color-vk-msg-other: var(--vk-msg-other);
+  --color-vk-text: var(--vk-text);
+  --color-vk-text-muted: var(--vk-text-muted);
+  --color-vk-accent: var(--vk-accent);
+  --color-vk-online: var(--vk-online);
+  --color-vk-notify: var(--vk-notify);
+  --color-vk-border: var(--vk-border);
+}
+
+:root {
+  /* Glassmorphism Light Blue Theme */
+  --vk-bg: transparent;
+  --vk-panel: rgba(255, 255, 255, 0.75);
+  --vk-msg-own: rgba(59, 130, 246, 0.8);
+  --vk-msg-other: rgba(255, 255, 255, 0.9);
+  --vk-text: #1e293b;
+  --vk-text-muted: #64748b;
+  --vk-accent: #3b82f6;
+  --vk-online: #22c55e;
+  --vk-notify: #ef4444;
+  --vk-border: rgba(59, 130, 246, 0.15);
+}
+
+body {
+  background-color: #f0f9ff;
+  color: var(--vk-text);
+  margin: 0;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Pseudo-element for the blurred, high-quality background */
+body::before {
+  content: "";
+  position: fixed;
+  top: -5%;
+  left: -5%;
+  width: 110%;
+  height: 110%;
+  background-image: 
+    linear-gradient(to bottom, rgba(240, 249, 255, 0.6) 0%, rgba(224, 242, 254, 0.7) 40%, rgba(186, 230, 253, 0.8) 70%, rgba(125, 211, 252, 0.9) 100%),
+    url('https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=100&w=3840&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center bottom;
+  filter: blur(24px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Add backdrop blur to panels for the glass effect */
+.bg-vk-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.bg-vk-bg {
+  background-color: transparent;
+}
+
+/* Animated text shimmer effect */
+@keyframes text-shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.animate-text-shimmer {
+  background: linear-gradient(
+    to right,
+    #1e293b 20%,
+    #3b82f6 40%,
+    #0ea5e9 60%,
+    #1e293b 80%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: text-shimmer 4s linear infinite;
+}
+

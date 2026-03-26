@@ -1,0 +1,196 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'username', 'displayName', 'email', 'createdAt']) &&
+             (data.uid == request.auth.uid || ((data.uid == 'ai_assistant_bot' || data.uid.matches('^ai-.*')) && data.isAI == true)) &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 20 &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 50 &&
+             data.email is string &&
+             (!('photoURL' in data) || data.photoURL is string) &&
+             (!('isVerified' in data) || data.isVerified is bool) &&
+             (!('isAI' in data) || data.isAI is bool) &&
+             (!('systemInstruction' in data) || data.systemInstruction is string);
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'senderId', 'createdAt']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 1000 &&
+             (data.senderId == request.auth.uid || data.senderId == 'ai_assistant_bot' || data.senderId.matches('^ai-.*')) &&
+             (!('senderIsVerified' in data) || data.senderIsVerified is bool);
+    }
+
+    function isValidCommunity(data) {
+      return data.keys().hasAll(['name', 'createdBy', 'createdAt']) &&
+             data.name is string && data.name.size() >= 3 && data.name.size() <= 30 &&
+             data.createdBy == request.auth.uid &&
+             (!('bannerUrl' in data) || data.bannerUrl is string);
+    }
+
+    function isCommunityCreator(communityId) {
+      return get(/databases/$(database)/documents/communities/$(communityId)).data.createdBy == request.auth.uid;
+    }
+
+    function hasCommunityRole(communityId, role) {
+      return get(/databases/$(database)/documents/communities/$(communityId)/roles/$(request.auth.uid)).data.role == role;
+    }
+
+    function isCommunityAdmin(communityId) {
+      return isAuthenticated() && (isCommunityCreator(communityId) || hasCommunityRole(communityId, 'admin'));
+    }
+
+    function isCommunityModerator(communityId) {
+      return isAuthenticated() && (isCommunityAdmin(communityId) || hasCommunityRole(communityId, 'moderator'));
+    }
+
+    function isBanned(communityId) {
+      return exists(/databases/$(database)/documents/communities/$(communityId)/bans/$(request.auth.uid));
+    }
+
+    function isGlobalAdmin() {
+      return isAuthenticated() && request.auth.token.email == 'alexeivasilev27081994@gmail.com' && request.auth.token.email_verified == true;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['title', 'completed', 'userId', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.completed is bool &&
+             data.userId == request.auth.uid &&
+             (!('deadline' in data) || data.deadline is string); // Deadline is optional ISO string
+    }
+
+    function isValidFriend(data) {
+      return data.keys().hasAll(['friendId', 'addedAt']) &&
+             data.friendId is string &&
+             data.addedAt is timestamp;
+    }
+
+    function isValidNews(data) {
+      return data.keys().hasAll(['text', 'authorId', 'authorName', 'createdAt']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 2000 &&
+             data.authorId is string &&
+             data.authorName is string &&
+             (!('authorPhoto' in data) || data.authorPhoto is string);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if (isOwner(userId) || ((userId == 'ai_assistant_bot' || userId.matches('^ai-.*')) && request.resource.data.isAI == true)) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && 
+                    request.resource.data.uid == resource.data.uid &&
+                    (request.resource.data.get('isVerified', false) == resource.data.get('isVerified', false) || 
+                     request.auth.token.email_verified == true)) || isGlobalAdmin();
+
+      match /friends/{friendId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId) && isValidFriend(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /personal_posts/{postId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+        allow update: if isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'repostCount']);
+        allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+
+        match /comments/{commentId} {
+          allow read: if isAuthenticated();
+          allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+          allow update: if false;
+          allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isOwner(userId));
+        }
+      }
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidTask(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidTask(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
+      allow update, delete: if false; // Messages are immutable for now
+    }
+
+    match /global_news/{newsId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidNews(request.resource.data);
+      allow update: if isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+      allow delete: if false;
+    }
+
+    match /communities/{communityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidCommunity(request.resource.data);
+      allow update: if isAuthenticated() && (
+                      isCommunityAdmin(communityId) || 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+                    );
+      allow delete: if isAuthenticated() && isCommunityCreator(communityId);
+
+      match /posts/{postId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && !isBanned(communityId) && 
+                      request.resource.data.authorId == request.auth.uid &&
+                      (!('authorIsVerified' in request.resource.data) || request.resource.data.authorIsVerified is bool);
+        allow update: if isAuthenticated() && !isBanned(communityId) &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+        allow delete: if isAuthenticated() && (resource.data.authorId == request.auth.uid || isCommunityModerator(communityId));
+      }
+
+      match /bans/{userId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && isCommunityModerator(communityId);
+      }
+
+      match /members/{userId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && isOwner(userId) && !isBanned(communityId);
+        allow delete: if isAuthenticated() && (isOwner(userId) || isCommunityModerator(communityId));
+      }
+
+      match /roles/{userId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && isCommunityAdmin(communityId);
+        allow delete: if isAuthenticated() && (isCommunityAdmin(communityId) || isOwner(userId));
+      }
+    }
+
+    match /direct_chats/{chatId} {
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants;
+        allow create: if isAuthenticated() && 
+                      request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants && 
+                      (request.resource.data.senderId == request.auth.uid || 
+                       get(/databases/$(database)/documents/direct_chats/$(chatId)).data.isAI == true);
+      }
+    }
+
+    // Collection Group Queries
+    match /{path=**}/posts/{postId} {
+      allow read: if isAuthenticated();
+    }
+    match /{path=**}/personal_posts/{postId} {
+      allow read: if isAuthenticated();
+    }
+    match /{path=**}/members/{userId} {
+      allow read: if isAuthenticated();
+    }
+  }
+}

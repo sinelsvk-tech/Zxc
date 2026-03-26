@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User profile data including username and basic info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "username": { "type": "string", "description": "Unique username" },
+        "displayName": { "type": "string", "description": "Public display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "photoURL": { "type": "string", "description": "Profile picture URL" },
+        "isVerified": { "type": "boolean", "description": "Whether the user's email is verified" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "username", "email"]
+    },
+    "messages": {
+      "title": "Chat Message",
+      "description": "A single message in the chat",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "Message content" },
+        "senderId": { "type": "string", "description": "UID of the sender" },
+        "senderName": { "type": "string", "description": "Name of the sender" },
+        "senderIsVerified": { "type": "boolean", "description": "Whether the sender is verified" },
+        "senderPhoto": { "type": "string", "description": "Photo URL of the sender" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the message was sent" }
+      },
+      "required": ["text", "senderId", "createdAt"]
+    },
+    "communities": {
+      "title": "Community",
+      "description": "A group of users with a common interest",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the community" },
+        "description": { "type": "string", "description": "Description of the community" },
+        "createdBy": { "type": "string", "description": "UID of the creator" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the community was created" },
+        "memberCount": { "type": "number", "description": "Number of members" },
+        "bannerUrl": { "type": "string", "description": "URL of the community banner image" }
+      },
+      "required": ["name", "createdBy", "createdAt"]
+    },
+    "community_posts": {
+      "title": "Community Post",
+      "description": "A post within a specific community",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "Post content" },
+        "authorId": { "type": "string", "description": "UID of the author" },
+        "authorName": { "type": "string", "description": "Name of the author" },
+        "authorIsVerified": { "type": "boolean", "description": "Whether the author is verified" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the post was created" }
+      },
+      "required": ["text", "authorId", "createdAt"]
+    },
+    "community_bans": {
+      "title": "Community Ban",
+      "description": "A record of a banned user in a community",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the banned user" },
+        "bannedBy": { "type": "string", "description": "UID of the moderator who banned the user" },
+        "bannedAt": { "type": "string", "format": "date-time", "description": "When the user was banned" }
+      },
+      "required": ["userId", "bannedBy", "bannedAt"]
+    },
+    "community_roles": {
+      "title": "Community Role",
+      "description": "A role assigned to a user within a community",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user" },
+        "role": { "type": "string", "enum": ["admin", "moderator"], "description": "The role name" },
+        "assignedBy": { "type": "string", "description": "UID of the user who assigned the role" },
+        "assignedAt": { "type": "string", "format": "date-time", "description": "When the role was assigned" }
+      },
+      "required": ["userId", "role", "assignedBy", "assignedAt"]
+    },
+    "direct_chats": {
+      "title": "Direct Chat",
+      "description": "A private chat between two users",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" }, "description": "UIDs of the two participants" },
+        "lastMessage": { "type": "string", "description": "The most recent message text" },
+        "lastMessageAt": { "type": "string", "format": "date-time", "description": "When the last message was sent" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the chat was last updated" }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "direct_messages": {
+      "title": "Direct Message",
+      "description": "A single message in a direct chat",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "Message content" },
+        "senderId": { "type": "string", "description": "UID of the sender" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the message was sent" }
+      },
+      "required": ["text", "senderId", "createdAt"]
+    },
+    "tasks": {
+      "title": "Task",
+      "description": "A user task with an optional deadline",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Task title" },
+        "description": { "type": "string", "description": "Task description" },
+        "deadline": { "type": "string", "format": "date-time", "description": "Optional deadline timestamp" },
+        "completed": { "type": "boolean", "description": "Whether the task is completed" },
+        "userId": { "type": "string", "description": "UID of the task owner" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the task was created" }
+      },
+      "required": ["title", "completed", "userId", "createdAt"]
+    },
+    "friends": {
+      "title": "Friend",
+      "description": "A record of a friendship between two users",
+      "type": "object",
+      "properties": {
+        "friendId": { "type": "string", "description": "UID of the friend" },
+        "addedAt": { "type": "string", "format": "date-time", "description": "When the friend was added" }
+      },
+      "required": ["friendId", "addedAt"]
+    },
+    "global_news": {
+      "title": "Global News",
+      "description": "A news post in the global news feed",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "News content" },
+        "authorId": { "type": "string", "description": "UID of the author (usually an AI bot)" },
+        "authorName": { "type": "string", "description": "Name of the author" },
+        "authorPhoto": { "type": "string", "description": "Photo URL of the author" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the news was posted" }
+      },
+      "required": ["text", "authorId", "authorName", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile document"
+    },
+    "/global_news/{newsId}": {
+      "schema": "global_news",
+      "description": "Global news feed"
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "schema": "friends",
+      "description": "User's friends list"
+    },
+    "/tasks/{taskId}": {
+      "schema": "tasks",
+      "description": "User tasks"
+    },
+    "/messages/{messageId}": {
+      "schema": "messages",
+      "description": "Global chat messages"
+    },
+    "/communities/{communityId}": {
+      "schema": "communities",
+      "description": "Community details"
+    },
+    "/communities/{communityId}/posts/{postId}": {
+      "schema": "community_posts",
+      "description": "Posts within a community"
+    },
+    "/communities/{communityId}/bans/{userId}": {
+      "schema": "community_bans",
+      "description": "Banned users in a community"
+    },
+    "/communities/{communityId}/members/{userId}": {
+      "schema": "users",
+      "description": "Members of a community"
+    },
+    "/communities/{communityId}/roles/{userId}": {
+      "schema": "community_roles",
+      "description": "User roles within a community"
+    },
+    "/direct_chats/{chatId}": {
+      "schema": "direct_chats",
+      "description": "Metadata for a direct chat between two users"
+    },
+    "/direct_chats/{chatId}/messages/{messageId}": {
+      "schema": "direct_messages",
+      "description": "Messages within a direct chat"
+    }
+  }
+}
